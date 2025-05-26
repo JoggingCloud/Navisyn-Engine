@@ -37,6 +37,7 @@ public:
 	void BeginFrame();
 	void EndFrame();
 
+	void StartupMarkovSystem();
 	void LoadDataSet(const std::string& dataSetFilePath);
 	void ParseLoadedDataSet();
 	void ForwardParsing();
@@ -51,9 +52,6 @@ public:
 	// Utility function for debugging purposes only
 	void PrintTransitions(const std::string& stateString, const std::vector<WeightedWord>& transitions);
 	std::string BuildStateString(const std::vector<std::string>& words);
-
-	// Initialize the System
-	static bool Command_StartupMarkov(EventArgs& args);
 
 	// ReBuild Markov
 	static bool Command_ReBuildMarkov(EventArgs& args);
@@ -85,8 +83,20 @@ public:
 	// Load DataSet
 	static bool Command_LoadDataSet(EventArgs& args);
 
+	// Load Previous Session
+	static bool Command_LoadSession(EventArgs& args);
+
 	// Response to system
 	static bool Command_Response(EventArgs& args);
+
+	// Topic choices 
+	static bool Command_Topic_GameDev(EventArgs& args);       
+	static bool Command_Topic_Sports(EventArgs& args);       
+	static bool Command_Topic_Economics(EventArgs& args);     
+	static bool Command_Topic_Education(EventArgs& args);
+	static bool Command_Topic_ClimateChange(EventArgs& args); 
+	static bool Command_Topic_Healthcare(EventArgs& args);    
+	static bool Command_Topic_Other(EventArgs& args);         
 
 public:
 	void Build(int order);
@@ -107,6 +117,8 @@ public:
 	int GetMaximumResponseLength() const;
 	int GetNumResponses() const;
 
+	bool HandleTopicCommand(const std::string& topic);
+
 	std::string GetSystemUsername();
 	std::string GetTimeGreeting();
 
@@ -116,7 +128,6 @@ public:
 	void LoadDataSetByTopic(const std::string& topicNameInput);
 
 	void SaveSession() const;
-	void LoadSessionForTopicPrompt();
 	void LoadSessionForTopic(const std::string& topic);
 
 protected:
@@ -143,10 +154,19 @@ private:
 	bool m_lastUsedForwardMode = true;
 
 private:
-	void RegisterMarkovCommand(const std::string& commandName, EventCallbackFunction callback);
+	void RegisterMarkovCommand(const std::string& commandName, EventCallbackFunction callback, bool isTopic = false);
+	void RegisterAllTopicCommands();
 	void RegisterAllMarkovCommands();
 
 	std::vector<std::string> m_markovCommands;
+	std::vector<std::string> m_topicCommands;
+
+	std::vector<std::string> m_topicPrompts = { "What topic would you like to explore today?",
+												"Choose a topic to dive into",
+												"Pick a subject to start the discussion",
+												"Select a topic and let's begin!",
+											  };
+	
 	std::vector<std::string> m_followUpPrompts = { "Would you like to hear more?",
 												   "Should I continue?",
 												   "Want to explore that further?",

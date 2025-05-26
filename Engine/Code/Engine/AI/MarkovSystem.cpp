@@ -12,6 +12,8 @@
 #include <sstream>
 #include <numeric>
 #include <cstdlib>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 MarkovSystem* g_theMarkov = nullptr;
 
@@ -27,7 +29,7 @@ MarkovSystem::MarkovSystem(MarkovConfig const& config)
 void MarkovSystem::Startup()
 {
 	LoadUsername();
-	RegisterMarkovCommand("StartupMarkov", Command_StartupMarkov);
+	StartupMarkovSystem();
 }
 
 void MarkovSystem::ShutDown()
@@ -40,6 +42,58 @@ void MarkovSystem::BeginFrame()
 
 void MarkovSystem::EndFrame()
 {
+}
+
+void MarkovSystem::StartupMarkovSystem()
+{
+	if (!g_theConsole->m_hasShownGreeting)
+	{
+		g_theConsole->m_hasShownGreeting = true;
+		g_theConsole->m_shouldShowGreeting = true;
+		std::string timeGreeting = g_theMarkov->GetTimeGreeting();
+		std::string greeting = Stringf("%s %s", timeGreeting.c_str(), g_theMarkov->m_username.c_str());
+
+		g_theConsole->AddCenterLine(DevConsole::MARKOV_INFO, "", 1.5f); // Spacer
+		g_theConsole->AddCenterLine(Rgba8::WHITE, greeting, 2.f);
+		g_theConsole->AddCenterLine(DevConsole::MARKOV_INFO, "", 1.5f); // Spacer
+	}
+
+	g_theConsole->AddLine(DevConsole::INFO_MINOR, "________________________", 1.25f);
+	g_theConsole->AddLine(DevConsole::INFO_MAJOR, "Markov System Startup Information:", 1.5f);
+	g_theConsole->AddLine(DevConsole::INFO_MINOR, "------------------------", 1.25f);
+	g_theConsole->AddLine(DevConsole::INFO_MINOR, "Current Order: " + std::to_string(g_theMarkov->m_order), 1.25f);
+	g_theConsole->AddLine(DevConsole::INFO_MINOR, "Default number of responses: " + std::to_string(g_theMarkov->m_numResponses), 1.25f);
+	g_theConsole->AddLine(DevConsole::INFO_MINOR, "Default minimum response length: " + std::to_string(g_theMarkov->m_minResponseLength), 1.25f);
+	g_theConsole->AddLine(DevConsole::INFO_MINOR, "Default maximum response length: " + std::to_string(g_theMarkov->m_maxResponseLength), 1.25f);
+
+	g_theConsole->AddLine(DevConsole::MARKOV_INFO, "", 1.5f); // Spacer
+
+	g_theConsole->AddLine(DevConsole::INFO_MAJOR, "Available Topics:", 1.5f);
+	g_theConsole->AddLine(DevConsole::INFO_MINOR, "------------------------", 1.25f);
+
+	g_theMarkov->RegisterAllTopicCommands();
+
+	for (const std::string topicCommand : g_theMarkov->m_topicCommands)
+	{
+		g_theConsole->AddLine(Rgba8::BABY_BLUE, "- " + topicCommand, 1.25);
+	}
+
+	g_theConsole->AddLine(DevConsole::MARKOV_INFO, "", 1.5f); // Spacer
+	g_theConsole->AddLine(DevConsole::INFO_MAJOR, "Markov-Specific Commands:", 1.5f);
+	g_theConsole->AddLine(DevConsole::INFO_MINOR, "________________________", 1.25f);
+	
+	g_theMarkov->RegisterAllMarkovCommands();
+
+	for (const std::string command : g_theMarkov->m_markovCommands)
+	{
+		g_theConsole->AddLine(DevConsole::MARKOV_INFO, "- " + command, 1.25f);
+	}
+	g_theConsole->AddLine(DevConsole::INFO_MINOR, "------------------------", 1.25f);
+
+	RandomNumberGenerator rng;
+	rng.SetSeed(GetRandomSeedFromTime());
+	std::string topicPrompt = rng.GetRandomElement(m_topicPrompts);
+	g_theConsole->AddLine(Rgba8::YELLOW, topicPrompt, 1.5f);
 }
 
 void MarkovSystem::LoadDataSet(const std::string& dataSetFilePath)
@@ -355,51 +409,6 @@ std::string MarkovSystem::BuildStateString(const std::vector<std::string>& words
 
 //------------------------------------------------------------------------------------------------------------------------
 
-bool MarkovSystem::Command_StartupMarkov([[maybe_unused]] EventArgs& args)
-{
-	if (!g_theConsole->m_hasShownGreeting)
-	{
-		g_theConsole->m_hasShownGreeting = true;
-		g_theConsole->m_shouldShowGreeting = true;
-		std::string timeGreeting = g_theMarkov->GetTimeGreeting();
-		std::string greeting = Stringf("%s %s", timeGreeting.c_str(), g_theMarkov->m_username.c_str());
-		
-		g_theConsole->AddCenterLine(DevConsole::MARKOV_INFO, "", 1.5f); // Spacer
-		g_theConsole->AddCenterLine(Rgba8::WHITE, greeting, 2.f);
-		g_theConsole->AddCenterLine(DevConsole::MARKOV_INFO, "", 1.5f); // Spacer
-	}
-
-	g_theConsole->AddLine(DevConsole::INFO_MINOR, "________________________", 1.25f);
-	g_theConsole->AddLine(DevConsole::INFO_MAJOR, "Markov System Startup Information:", 1.5f);
-	g_theConsole->AddLine(DevConsole::INFO_MINOR, "------------------------", 1.25f);
-	g_theConsole->AddLine(DevConsole::INFO_MINOR, "Current Order: " + std::to_string(g_theMarkov->m_order), 1.25f);
-	g_theConsole->AddLine(DevConsole::INFO_MINOR, "Default number of responses: " + std::to_string(g_theMarkov->m_numResponses), 1.25f);
-	g_theConsole->AddLine(DevConsole::INFO_MINOR, "Default minimum response length: " + std::to_string(g_theMarkov->m_minResponseLength), 1.25f);
-	g_theConsole->AddLine(DevConsole::INFO_MINOR, "Default maximum response length: " + std::to_string(g_theMarkov->m_maxResponseLength), 1.25f);
-	g_theConsole->AddLine(DevConsole::INFO_MAJOR, "Markov-Specific Commands:", 1.5f);
-
-	g_theConsole->AddCenterLine(DevConsole::MARKOV_INFO, "", 1.5f); // Spacer
-
-	g_theConsole->AddLine(DevConsole::INFO_MAJOR, "Available Topics:", 1.5f);
-	g_theConsole->AddLine(DevConsole::INFO_MINOR, "- GameDev", 1.25f);
-	g_theConsole->AddLine(DevConsole::INFO_MINOR, "- Sports", 1.25f);
-	g_theConsole->AddLine(DevConsole::INFO_MINOR, "- Economics", 1.25f);
-	g_theConsole->AddLine(DevConsole::INFO_MINOR, "- Education", 1.25f);
-	g_theConsole->AddLine(DevConsole::INFO_MINOR, "- ClimateChange", 1.25f);
-	g_theConsole->AddLine(DevConsole::INFO_MINOR, "- Healthcare", 1.25f);
-	g_theConsole->AddLine(DevConsole::INFO_MINOR, "- Other (default if unrecognized)", 1.25f);
-
-	g_theMarkov->RegisterAllMarkovCommands();
-
-	for (const std::string command : g_theMarkov->m_markovCommands)
-	{
-		g_theConsole->AddLine(DevConsole::MARKOV_INFO, "- " + command, 1.25f);
-	}
-	g_theConsole->AddLine(DevConsole::INFO_MINOR, "------------------------", 1.25f);
-
-	return true;
-}
-
 bool MarkovSystem::Command_ReBuildMarkov(EventArgs& args)
 {
 	int order = std::stoi(args.GetValue<std::string>("order", "1"));
@@ -545,9 +554,18 @@ bool MarkovSystem::Command_LoadDataSet(EventArgs& args)
 	return true;
 }
 
+bool MarkovSystem::Command_LoadSession([[maybe_unused]] EventArgs& args)
+{
+	std::string topic = args.GetValue<std::string>("topic", "other");
+	g_theMarkov->LoadSessionForTopic(topic);
+
+	return true;
+}
+
 bool MarkovSystem::Command_Response(EventArgs& args) // #ToDo remove m_pending 
 {
 	std::string response = args.GetValue<std::string>("response", "no");
+	g_theMarkov->m_conversationLog.push_back("> " + response);
 	if (response == "yes")
 	{
 		std::string command = g_theMarkov->m_lastUsedForwardMode ? "generateforward" : "generatebackward";
@@ -558,6 +576,48 @@ bool MarkovSystem::Command_Response(EventArgs& args) // #ToDo remove m_pending
 		g_theMarkov->ClearAllData();
 		g_theConsole->AddLine(DevConsole::MARKOV_INFO, "What topic would you like to switch to?");
 	}
+	return true;
+}
+
+bool MarkovSystem::Command_Topic_GameDev([[maybe_unused]] EventArgs& args)
+{
+	g_theMarkov->HandleTopicCommand("GameDev");
+	return true;
+}
+
+bool MarkovSystem::Command_Topic_Sports([[maybe_unused]] EventArgs& args)
+{
+	g_theMarkov->HandleTopicCommand("Sports");
+	return true;
+}
+
+bool MarkovSystem::Command_Topic_Economics([[maybe_unused]] EventArgs& args)
+{
+	g_theMarkov->HandleTopicCommand("Economics");
+	return true;
+}
+
+bool MarkovSystem::Command_Topic_Education([[maybe_unused]] EventArgs& args)
+{
+	g_theMarkov->HandleTopicCommand("Education");
+	return true;
+}
+
+bool MarkovSystem::Command_Topic_ClimateChange([[maybe_unused]] EventArgs& args)
+{
+	g_theMarkov->HandleTopicCommand("ClimateChange");
+	return true;
+}
+
+bool MarkovSystem::Command_Topic_Healthcare([[maybe_unused]] EventArgs& args)
+{
+	g_theMarkov->HandleTopicCommand("Healthcare");
+	return true;
+}
+
+bool MarkovSystem::Command_Topic_Other([[maybe_unused]] EventArgs& args)
+{
+	g_theMarkov->HandleTopicCommand("Other");
 	return true;
 }
 
@@ -1128,6 +1188,9 @@ void MarkovSystem::RunConversationLoop()
 	std::string prompt = rng.GetRandomElement(m_followUpPrompts);
 	g_theConsole->AddLine(Rgba8::MAGENTA, prompt, 1.5f);
 	g_theConsole->AddLine(DevConsole::INFO_MINOR, "Type: yes | no", 1.25f);
+
+	m_conversationLog.push_back(prompt);
+	m_conversationLog.push_back("Type: yes | no");
 }
 
 void MarkovSystem::DisplayAvailableStates()
@@ -1252,6 +1315,14 @@ int MarkovSystem::GetNumResponses() const
 	return m_numResponses;
 }
 
+bool MarkovSystem::HandleTopicCommand(const std::string& topic)
+{
+	g_theConsole->m_isPreparingToLoadDataSet = true;
+	g_theConsole->m_topicToLoadNextFrame = topic;
+	m_currentTopic = topic;
+	return true;
+}
+
 std::string MarkovSystem::GetSystemUsername()
 {
 #if defined(_WIN32) || defined(_WIN64)
@@ -1336,6 +1407,7 @@ void MarkovSystem::ClearAllData()
 	m_states.clear();
 	m_forwardTransitionMatrix.clear();
 	m_backwardTransitionMatrix.clear();
+	m_lastUsedForwardMode = false;
 }
 
 void MarkovSystem::LoadDataSetByTopic(const std::string& topicNameInput)
@@ -1362,9 +1434,17 @@ void MarkovSystem::LoadDataSetByTopic(const std::string& topicNameInput)
 
 void MarkovSystem::SaveSession() const
 {
-	std::string path = "Data/Sessions/" + m_currentTopic + ".session";
+	std::string folder = "Data/Sessions/";
+	std::string path = folder + m_currentTopic + ".session";
+
+	fs::create_directories(folder);
+
 	std::ofstream file(path);
-	if (!file.is_open()) return;
+	if (!file.is_open())
+	{
+		g_theConsole->AddLine(DevConsole::ERROR, "Failed to open file for saving: " + path);
+		return;
+	}
 
 	file << (m_lastUsedForwardMode ? "generateforward" : "generatebackward") << "\n";
 	for (const std::string& line : m_conversationLog)
@@ -1374,45 +1454,76 @@ void MarkovSystem::SaveSession() const
 	file.close();
 }
 
-void MarkovSystem::LoadSessionForTopicPrompt()
-{
-	
-}
-
 void MarkovSystem::LoadSessionForTopic(const std::string& topic)
 {
-	m_currentTopic = topic;
-	LoadDataSetByTopic(m_currentTopic);
-
 	std::string path = "Data/Sessions/" + topic + ".session";
 	std::ifstream file(path);
-	if (!file.is_open()) return;
+	if (!file.is_open())
+	{
+		g_theConsole->AddLine(DevConsole::ERROR, "Failed to open saved file: " + path);
+		return;
+	}
+
+	LoadDataSetByTopic(topic);
+	m_currentTopic = topic;
 
 	std::string mode;
 	std::getline(file, mode);
 	m_lastUsedForwardMode = (mode == "generateforward");
+
+	std::string line;
+	while (std::getline(file, line))
+	{
+		if (!line.empty())
+		{
+			m_conversationLog.push_back(line);
+			WrapTextResult(line);
+		}
+	}
+
 	file.close();
+
+	RunConversationLoop();
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 
-void MarkovSystem::RegisterMarkovCommand(const std::string& commandName, EventCallbackFunction callback)
+void MarkovSystem::RegisterMarkovCommand(const std::string& commandName, EventCallbackFunction callback, bool isTopic /*= false*/)
 {
 	g_theEventSystem->SubscribeEventCallbackFunction(commandName, callback);
-	m_markovCommands.emplace_back(commandName);
+
+	if (isTopic)
+	{
+		m_topicCommands.emplace_back(commandName);
+	}
+	else
+	{
+		m_markovCommands.emplace_back(commandName);
+	}
+}
+
+void MarkovSystem::RegisterAllTopicCommands()
+{
+	RegisterMarkovCommand("GameDev",       Command_Topic_GameDev, true);
+	RegisterMarkovCommand("Sports",        Command_Topic_Sports, true);
+	RegisterMarkovCommand("Economics",     Command_Topic_Economics, true);
+	RegisterMarkovCommand("Education",     Command_Topic_Education, true);
+	RegisterMarkovCommand("ClimateChange", Command_Topic_ClimateChange, true);
+	RegisterMarkovCommand("Healthcare",    Command_Topic_Healthcare, true);
+	RegisterMarkovCommand("Other",         Command_Topic_Other, true);
 }
 
 void MarkovSystem::RegisterAllMarkovCommands()
 {
-	RegisterMarkovCommand("Topic", Command_LoadDataSet);
-	RegisterMarkovCommand("Response", Command_Response);
-	RegisterMarkovCommand("ReBuildMarkov", Command_ReBuildMarkov);
-	RegisterMarkovCommand("GenerateForward", Command_GenerateForward);
-	RegisterMarkovCommand("GenerateBackward", Command_GenerateBackward);
-	RegisterMarkovCommand("DisplayStates", Command_DisplayStates);
-	RegisterMarkovCommand("SetOrder", Command_SetOrder);
+	RegisterMarkovCommand("Response",          Command_Response);
+	RegisterMarkovCommand("ReBuildMarkov",     Command_ReBuildMarkov);
+	RegisterMarkovCommand("GenerateForward",   Command_GenerateForward);
+	RegisterMarkovCommand("GenerateBackward",  Command_GenerateBackward);
+	RegisterMarkovCommand("DisplayStates",     Command_DisplayStates);
+	RegisterMarkovCommand("SetOrder",          Command_SetOrder);
 	RegisterMarkovCommand("SetResponseLength", Command_SetResponseLength);
 	RegisterMarkovCommand("SetResponseNumber", Command_SetResponseNumber);
-	RegisterMarkovCommand("SetUsername", Command_SetUsername);
-	RegisterMarkovCommand("ResetUsername", Command_ResetUsername);
+	RegisterMarkovCommand("SetUsername",       Command_SetUsername);
+	RegisterMarkovCommand("ResetUsername",     Command_ResetUsername);
+	RegisterMarkovCommand("LoadSession",	   Command_LoadSession);
 }
