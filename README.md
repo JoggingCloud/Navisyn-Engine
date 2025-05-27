@@ -15,11 +15,10 @@ It features the following major subsystems:
 [Job System](Engine/Code/Engine/Core) - For Multi-Threading
 
 [Renderer](Engine/Code/Engine/Renderer) - For Drawing and Displaying everything on screen
- 
- 
- > 2D and 3D Debug visualization system
- > Bitmap fonts
- > OBJ Loader
+
+- 2D and 3D Debug visualization system
+- Bitmap fonts
+- OBJ Loader
 
 
 [Math Libraries](Engine/Code/Engine/Math) - Includes 2D, 3D & 4D vectors (vec2, vec3, vec4), Matrix4x4 and more
