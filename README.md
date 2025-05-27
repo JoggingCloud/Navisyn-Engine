@@ -3,8 +3,8 @@ Personel engine made in C++ that supports DirectX11 API.
 It features the following major subsystems:
 
 [AI Systems](Engine/Code/Engine/AI)
-* Obstacle Avoidance algorithms
-* Markov System
+  * Obstacle Avoidance algorithms
+  * Markov System
 
   [Pathfinding](Engine/Code/Engine/AI/Pathfinding)
     * Grid based pathing
