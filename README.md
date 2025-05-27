@@ -3,7 +3,7 @@ Personel engine made in C++ that supports DirectX11 API.
 It features the following major subsystems:
 
 AI system:
-* Grid based pathing: [Check out the AIActor system](./Code/Game/AIActor.cpp)
+* Grid based pathing: [Check out the AIActor system](Engine/Code/Engine/AI)
 * Nav mesh pathing
 * Obstacle Avoidance algorithms
 * Markov System
